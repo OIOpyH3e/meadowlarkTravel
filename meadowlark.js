@@ -4,7 +4,13 @@ const expressHandlebars = require('express-handlebars');
 
 const app = express();
 
+// ESLint не опраделяет глобальные переменные process и __dirname
+// поэтому необходимо отключить это правило для данных строк
+
+/* eslint-disable no-undef */
 const port = process.env.PORT || 3000;
+/* eslint-enable no-undef */
+
 //Настройка механизма представлений Handlebars
 app.engine(
     'handlebars',
@@ -14,7 +20,9 @@ app.engine(
 );
 app.set('view engine', 'handlebars');
 
+/* eslint-disable no-undef */
 app.use(express.static(__dirname + '/public'));
+/* eslint-enable no-undef */
 
 app.get('/', handlers.home);
 
