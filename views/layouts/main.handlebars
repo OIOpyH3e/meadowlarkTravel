@@ -2,11 +2,22 @@
 <html>
     <head>
         <title>Meadowlark Travel</title>
+        {{#section 'head'}}
+        <!-- Мы хотим, чтобы Google игнорировал эту страницу -->
+        <meta name="robots" content="noindex">
+        {{/section}}
     </head>
     <body>
         <header>
             <img src="/img/logo.png" alt="Логотип Meadowlark Travel">
         </header>
         {{{body}}}
+        {{#section 'scripts'}}]
+        <script>
+            const div = document.createElement('div')
+            div.appendChild(document.createTextNode('(scripting works!)'))
+            document.querySelector('body').appendChild(div)
+        </script>
+        {{/section}}
     </body>
 </html>
