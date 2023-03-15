@@ -1,6 +1,8 @@
-const handlers = require('./lib/handlers');
 const express = require('express');
 const expressHandlebars = require('express-handlebars');
+
+const handlers = require('./lib/handlers');
+const weatherMiddleware = require('./lib/middleware/weather');
 
 const app = express();
 
@@ -30,6 +32,8 @@ app.set('view engine', 'handlebars');
 /* eslint-disable no-undef */
 app.use(express.static(__dirname + '/public'));
 /* eslint-enable no-undef */
+
+app.use(weatherMiddleware);
 
 app.get('/', handlers.home);
 
