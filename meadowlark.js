@@ -61,7 +61,7 @@ app.get('/about', handlers.about);
 app.get('/newsletter-signup', handlers.newsletterSignup);
 app.post('/newsletter-signup/process', handlers.newsletterSignupProcess);
 app.get('/newsletter-signup/thank-you', handlers.newsletterSignupThankYou);
-app.get('/newsletter-archive', handlers.newsletterArchive)
+app.get('/newsletter-archive', handlers.newsletterSignupThankYou)
 
 app.get('/newsletter', handlers.newsletter);
 app.post('/api/newsletter-signup', handlers.api.newsletterSignup);
