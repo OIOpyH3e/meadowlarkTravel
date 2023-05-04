@@ -4,11 +4,16 @@ const bodyParser = require('body-parser');
 const multiparty = require('multiparty');
 const cookieParser = require('cookie-parser');
 const expressSession = require('express-session');
+const morgan = require('morgan')
+const fs = require('fs')
+const cluster = require('cluster')
+const Sentry = require('@sentry/node')
 
 const credentials = require('./credentials');
 const handlers = require('./lib/handlers');
 const weatherMiddleware = require('./lib/middleware/weather');
 const flashMiddleware = require('./lib/middleware/flash');
+Sentry.init({ dsn: 'https://4b2ed9dfdffa41228d7aab5c0e65a912@o4505127466303488.ingest.sentry.io/4505127473905664' })
 
 const app = express();
 
@@ -16,7 +21,7 @@ const app = express();
 // поэтому необходимо отключить это правило для данных строк
 
 /* eslint-disable no-undef */
-const port = process.env.PORT || 3000;
+// const port = process.env.PORT || 3000;
 /* eslint-enable no-undef */
 
 //Настройка механизма представлений Handlebars
@@ -53,6 +58,28 @@ app.use(express.static(__dirname + '/public'));
 
 app.use(weatherMiddleware);
 app.use(flashMiddleware);
+
+app.use((req, res, next) => {
+    if(cluster.isWorker)
+    console.log(`Исполнитель ${cluster.worker.id} получил запрос`)
+    next()
+})
+
+app.get('env');
+
+// Функциональность записи в лог, всего что происходит на сервере
+/* eslint-disable no-case-declarations, no-undef*/
+switch(app.get('env')) {
+    case 'development':
+        app.use(morgan('dev'))
+        break
+        case 'production':
+            const stream = fs.createWriteStream(__dirname + '/access.log', 
+            {flags: 'a' })
+            app.use(morgan('combined', { stream }))
+            break
+}
+/* eslint-enable no-case-declarations, no-undef */
 
 app.get('/', handlers.home);
 
@@ -92,19 +119,51 @@ app.post('/api/vacation-photo-contest/:year/:month', (req, res) => {
     });
 });
 
+/* eslint-disable no-unused-vars, no-undef */
+app.get('/fail', (req, res) => {
+    throw new Error('Нет!')
+})
+
+app.get('/epic-fail', (req, res) => {
+    process.nextTick(() => {
+        throw new Error('Бабах!')
+    })
+    res.send('embrassed')
+})
+
+process.on('uncaughtException', err => {
+    console.error('НЕПЕРЕХВАЧЕННОЕ ИСКЛЮЧЕНИЕ\n', err.stack);
+    // Выполните здесь всю необходимую очистку данных ...
+    // Закройте соединение с базой данных и т.д.
+    Sentry.captureException(err)
+    process.exit(1)
+})
+
 //Пользовательская страница 404
 app.use(handlers.notFound);
 
 //Пользовательская страница 500
-app.use(handlers.serverError);
+app.use((err, req, res, next) => {
+    console.error(err.message, err.stack)
+    app.status(500).render('500')
+});
+/* eslint-enable no-unused-vars, no-undef */
 
-if (require.main === module) {
-    app.listen(port, () => {
-        console.log(
-            `Express запущен на http://localhost:${port}` +
-                `; нажмите Ctrl+C для завершения.`
-        );
-    });
+function startServer(port) {
+    app.listen(port, function() {
+         console.log(`Express запущен в режиме ${app.get('env')} на http://localhost:${port}` +
+                `; нажмите Ctrl+C для завершения.`)
+    })
+}
+
+if(require.main === module) {
+    // Приложение запускается непосредственно;
+    // запускается сервер приложения.
+    /* eslint-disable no-undef */
+    startServer(process.env.PORT || 3000)
+    /* eslint-enable no-undef */
 } else {
-    module.exports = app;
+    // Приложение импортируется как модуль с помощью "require":
+    // Экспортируем функцию для создания сервера
+    module.exports = startServer
 }
