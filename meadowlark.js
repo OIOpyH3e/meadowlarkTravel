@@ -14,6 +14,8 @@ const handlers = require('./lib/handlers');
 const weatherMiddleware = require('./lib/middleware/weather');
 const flashMiddleware = require('./lib/middleware/flash');
 Sentry.init({ dsn: 'https://4b2ed9dfdffa41228d7aab5c0e65a912@o4505127466303488.ingest.sentry.io/4505127473905664' })
+require('./db')
+
 
 const app = express();
 
@@ -138,6 +140,14 @@ process.on('uncaughtException', err => {
     Sentry.captureException(err)
     process.exit(1)
 })
+
+// Отпускные туры
+app.get('/vacations', handlers.listVacations)
+app.get('/notify-me-when-in-season', handlers.notifyWhenInSeasonForm)
+app.post('/notify-me-when-in-season', handlers.notifyWhenInSeasonProcess)
+
+// Переключение валюты
+app.get('/set-currency/:currency', handlers.setCurrency)
 
 //Пользовательская страница 404
 app.use(handlers.notFound);
