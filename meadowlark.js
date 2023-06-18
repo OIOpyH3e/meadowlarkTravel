@@ -8,6 +8,7 @@ const morgan = require('morgan')
 const fs = require('fs')
 const cluster = require('cluster')
 const Sentry = require('@sentry/node')
+const RedisStore = require('connect-redis')(expressSession)
 
 const credentials = require('./credentials');
 const handlers = require('./lib/handlers');
@@ -51,6 +52,9 @@ app.use(
         resave: false,
         saveUninitialized: false,
         secret: credentials.cookieSecret,
+        store: new RedisStore({
+            url: credentials.redis.url,
+        }),
     })
 );
 
