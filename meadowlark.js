@@ -1,3 +1,4 @@
+
 const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const bodyParser = require('body-parser');
@@ -10,15 +11,22 @@ const cluster = require('cluster')
 const Sentry = require('@sentry/node')
 const RedisStore = require('connect-redis')(expressSession)
 
+// Добавление модулей промежуточного ПО
 const credentials = require('./credentials');
 const handlers = require('./lib/handlers');
 const weatherMiddleware = require('./lib/middleware/weather');
 const flashMiddleware = require('./lib/middleware/flash');
 Sentry.init({ dsn: 'https://4b2ed9dfdffa41228d7aab5c0e65a912@o4505127466303488.ingest.sentry.io/4505127473905664' })
-require('./db')
 
 
 const app = express();
+
+
+// Добавление модулей маршрутов
+
+require('./db');
+require('./routes')(app);
+
 
 // ESLint не опраделяет глобальные переменные process и __dirname
 // поэтому необходимо отключить это правило для данных строк
@@ -87,18 +95,23 @@ switch(app.get('env')) {
 }
 /* eslint-enable no-case-declarations, no-undef */
 
-app.get('/', handlers.home);
 
+// Маршруты
+
+app.get('/', handlers.home);
 app.get('/about', handlers.about);
 
+//  Маршруты подписки на рассылку
 app.get('/newsletter-signup', handlers.newsletterSignup);
 app.post('/newsletter-signup/process', handlers.newsletterSignupProcess);
 app.get('/newsletter-signup/thank-you', handlers.newsletterSignupThankYou);
 app.get('/newsletter-archive', handlers.newsletterSignupThankYou)
 
+// Маршруты подписки на рассылку API
 app.get('/newsletter', handlers.newsletter);
 app.post('/api/newsletter-signup', handlers.api.newsletterSignup);
 
+// Конкурс отпускных фотографий
 app.get('/contest/vacation-photo', handlers.vacationPhotoContest);
 app.get('/contest/vacation-photo-ajax', handlers.vacationPhotoContestAjax);
 app.post('/contest/vacation-photo/:year/:month', (req, res) => {
@@ -125,6 +138,8 @@ app.post('/api/vacation-photo-contest/:year/:month', (req, res) => {
     });
 });
 
+
+// Критические ошибки, НЕПЕРЕХВАЧЕННЫЕ ИСКЛЮЧЕНИЯ
 /* eslint-disable no-unused-vars, no-undef */
 app.get('/fail', (req, res) => {
     throw new Error('Нет!')
@@ -156,6 +171,28 @@ app.get('/set-currency/:currency', handlers.setCurrency)
 //Пользовательская страница 404
 app.use(handlers.notFound);
 
+// Автоматический рендеринг представлений
+try  {
+const autoViews = {}
+const { util, promisify } = require('util')
+const fileExists = promisify(fs.exists)
+
+app.use(async (req, res, next) => {
+    const path = req.path.toLowerCase()
+    // Проверяем кэш; если его там нет, загружаем представление 
+    if(autoViews[path]) return res.render(autoViews[path])
+    // Если его нет в кэше, проверить на совпадения по файлу .handlers
+    if(await fileExists(__dirname + '/views' + path + '.handlebars')) {
+        autoViews[path] = path.replace(/^\//, '')
+        return res.render(autoViews[path])
+    }
+    // Если в представлениях не найдено, пройти до вызова 404
+    next()
+})
+}
+catch {
+    console.error()
+} 
 //Пользовательская страница 500
 app.use((err, req, res, next) => {
     console.error(err.message, err.stack)
