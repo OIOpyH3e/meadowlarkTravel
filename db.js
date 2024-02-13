@@ -1,11 +1,11 @@
-// const credentials = require('./credentials')
+const credentials = require('./credentials')
 
 // Инициализируем соединение с базой данных
 /* eslint-disable no-undef */
 const mongoose = require('mongoose')
 
 // const env = process.env.NODE_ENV || "development"
-const connectionString = 'mongodb+srv://nurbek01:A08A11A20r@meadowlarktravelvacatio.rmgun8y.mongodb.net/MeadowlarkTravelVacations?retryWrites=true&w=majority'
+const { connectionString } = credentials.mongo
 if(!connectionString) {
     console.error('Отсутствует строка подключения к MongoDB!')
     process.exit(1)
